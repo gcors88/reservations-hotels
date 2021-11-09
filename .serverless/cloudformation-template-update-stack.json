@@ -1,0 +1,350 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "The AWS CloudFormation template for this Serverless application",
+  "Resources": {
+    "ProcessDashnotificationLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/control-reservations-hotels-dev-process-notification"
+      }
+    },
+    "ValidateDashdateLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/control-reservations-hotels-dev-validate-date"
+      }
+    },
+    "SendDashemailLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/control-reservations-hotels-dev-send-email"
+      }
+    },
+    "IamRoleLambdaExecution": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": [
+                  "lambda.amazonaws.com"
+                ]
+              },
+              "Action": [
+                "sts:AssumeRole"
+              ]
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": {
+              "Fn::Join": [
+                "-",
+                [
+                  "control-reservations-hotels",
+                  "dev",
+                  "lambda"
+                ]
+              ]
+            },
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream",
+                    "logs:CreateLogGroup"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/control-reservations-hotels-dev*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/control-reservations-hotels-dev*:*:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "states:StartExecution"
+                  ],
+                  "Resource": {
+                    "Fn::Sub": "arn:aws:states:us-east-2:${AWS::AccountId}:stateMachine:ReservationsHotels"
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "Path": "/",
+        "RoleName": {
+          "Fn::Join": [
+            "-",
+            [
+              "control-reservations-hotels",
+              "dev",
+              {
+                "Ref": "AWS::Region"
+              },
+              "lambdaRole"
+            ]
+          ]
+        }
+      }
+    },
+    "ProcessDashnotificationLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "lambda-control-reservations-hotels",
+          "S3Key": "serverless/control-reservations-hotels/dev/1636416440938-2021-11-09T00:07:20.938Z/control-reservations-hotels.zip"
+        },
+        "Handler": "src/index.handle",
+        "Runtime": "nodejs12.x",
+        "FunctionName": "control-reservations-hotels-dev-process-notification",
+        "MemorySize": 1024,
+        "Timeout": 30,
+        "Environment": {
+          "Variables": {
+            "NODE_ENV": "dev",
+            "REGION": "us-east-2"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "ProcessDashnotificationLogGroup"
+      ]
+    },
+    "ValidateDashdateLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "lambda-control-reservations-hotels",
+          "S3Key": "serverless/control-reservations-hotels/dev/1636416440938-2021-11-09T00:07:20.938Z/control-reservations-hotels.zip"
+        },
+        "Handler": "src/reservations/reservations.validateDate",
+        "Runtime": "nodejs12.x",
+        "FunctionName": "control-reservations-hotels-dev-validate-date",
+        "MemorySize": 1024,
+        "Timeout": 30,
+        "Environment": {
+          "Variables": {
+            "NODE_ENV": "dev",
+            "REGION": "us-east-2"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "ValidateDashdateLogGroup"
+      ]
+    },
+    "SendDashemailLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": "lambda-control-reservations-hotels",
+          "S3Key": "serverless/control-reservations-hotels/dev/1636416440938-2021-11-09T00:07:20.938Z/control-reservations-hotels.zip"
+        },
+        "Handler": "src/helpers/sendEmail.handle",
+        "Runtime": "nodejs12.x",
+        "FunctionName": "control-reservations-hotels-dev-send-email",
+        "MemorySize": 1024,
+        "Timeout": 300,
+        "Environment": {
+          "Variables": {
+            "NODE_ENV": "dev",
+            "REGION": "us-east-2"
+          }
+        },
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        }
+      },
+      "DependsOn": [
+        "SendDashemailLogGroup"
+      ]
+    },
+    "ProcessDashnotificationLambdaVersionzRftiFycC0JX5enRZQqNPEkHlHD3s3bqD6LwKzEj6k": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "ProcessDashnotificationLambdaFunction"
+        },
+        "CodeSha256": "cHYlkjpgk4zeVDlQ1n2fVAEw3chgTER7sWQagNoUdGY="
+      }
+    },
+    "ValidateDashdateLambdaVersionaDAccgx7Kf3dsYi0vepBFn3KeZVfPE6XN9GuZygxQA": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "ValidateDashdateLambdaFunction"
+        },
+        "CodeSha256": "cHYlkjpgk4zeVDlQ1n2fVAEw3chgTER7sWQagNoUdGY="
+      }
+    },
+    "SendDashemailLambdaVersionyBomvOgHux3kN4GEYVtkQ6vgt88Q0k5qys6lIwFFiU": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "SendDashemailLambdaFunction"
+        },
+        "CodeSha256": "cHYlkjpgk4zeVDlQ1n2fVAEw3chgTER7sWQagNoUdGY="
+      }
+    },
+    "ReservationsHotelsRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "states.us-east-2.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "dev-us-east-2-control-reservations-hotels-statemachine",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "lambda:InvokeFunction"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:control-reservations-hotels-dev-validate-date"
+                    },
+                    {
+                      "Fn::Sub": [
+                        "${functionArn}:*",
+                        {
+                          "functionArn": {
+                            "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:control-reservations-hotels-dev-validate-date"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:control-reservations-hotels-dev-send-email"
+                    },
+                    {
+                      "Fn::Sub": [
+                        "${functionArn}:*",
+                        {
+                          "functionArn": {
+                            "Fn::Sub": "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:control-reservations-hotels-dev-send-email"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "ReservationsHotels": {
+      "Type": "AWS::StepFunctions::StateMachine",
+      "Properties": {
+        "DefinitionString": {
+          "Fn::Sub": "{\n  \"Comment\": \"\",\n  \"StartAt\": \"ValidateDate\",\n  \"States\": {\n    \"ValidateDate\": {\n      \"Type\": \"Task\",\n      \"Next\": \"SendEmail\",\n      \"Resource\": \"arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:control-reservations-hotels-dev-validate-date\"\n    },\n    \"SendEmail\": {\n      \"Type\": \"Task\",\n      \"Resource\": \"arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:control-reservations-hotels-dev-send-email\",\n      \"End\": true\n    }\n  }\n}"
+        },
+        "RoleArn": {
+          "Fn::GetAtt": [
+            "ReservationsHotelsRole",
+            "Arn"
+          ]
+        },
+        "StateMachineName": "ReservationsHotels"
+      },
+      "DependsOn": [
+        "ReservationsHotelsRole"
+      ]
+    }
+  },
+  "Outputs": {
+    "ServerlessDeploymentBucketName": {
+      "Value": "lambda-control-reservations-hotels",
+      "Export": {
+        "Name": "sls-control-reservations-hotels-dev-ServerlessDeploymentBucketName"
+      }
+    },
+    "ProcessDashnotificationLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "ProcessDashnotificationLambdaVersionzRftiFycC0JX5enRZQqNPEkHlHD3s3bqD6LwKzEj6k"
+      },
+      "Export": {
+        "Name": "sls-control-reservations-hotels-dev-ProcessDashnotificationLambdaFunctionQualifiedArn"
+      }
+    },
+    "ValidateDashdateLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "ValidateDashdateLambdaVersionaDAccgx7Kf3dsYi0vepBFn3KeZVfPE6XN9GuZygxQA"
+      },
+      "Export": {
+        "Name": "sls-control-reservations-hotels-dev-ValidateDashdateLambdaFunctionQualifiedArn"
+      }
+    },
+    "SendDashemailLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "SendDashemailLambdaVersionyBomvOgHux3kN4GEYVtkQ6vgt88Q0k5qys6lIwFFiU"
+      },
+      "Export": {
+        "Name": "sls-control-reservations-hotels-dev-SendDashemailLambdaFunctionQualifiedArn"
+      }
+    },
+    "ReservationsHotelsArn": {
+      "Description": "Current StateMachine Arn",
+      "Value": {
+        "Ref": "ReservationsHotels"
+      },
+      "Export": {
+        "Name": "sls-control-reservations-hotels-dev-ReservationsHotelsArn"
+      }
+    }
+  }
+}

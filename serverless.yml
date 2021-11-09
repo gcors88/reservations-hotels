@@ -1,0 +1,64 @@
+service: control-reservations-hotels
+
+frameworkversion: '2'
+
+plugins:
+  - serverless-localstack
+  - serverless-step-functions
+  - serverless-deployment-bucket
+  - serverless-pseudo-parameters
+  - serverless-iam-roles-per-function
+custom:
+  bucket: lambda-control-reservations-hotels
+  localstack:
+    debug: true
+    stages:
+      -local
+    endpointfile: configs/localstack_endpoints.json
+
+provider:
+  name: aws
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-east-2'}
+  runtime: nodejs12.x
+  lambdaHashingVersion: 20201221
+  environment:
+    NODE_ENV: ${opt:stage, 'dev'}
+    REGION: ${opt:region, 'us-east-2'}
+  deploymentBucket:
+    name: lambda-control-reservations-hotels
+    serverSideEncryption: AES256
+  iamRoleStatements:
+    - Effect: 'Allow'
+      Action:
+        - 'states:StartExecution'
+      Resource:
+        - arn:aws:states:${self:provider.region}:#{AWS::AccountId}:stateMachine:ReservationsHotels
+
+functions:
+  process-notification:
+    handler: src/index.handle
+    timeout: 30 # Default is 6
+  validate-date:
+    handler: src/reservations/reservations.validateDate
+    timeout: 30 # Default is 6
+  send-email:
+    handler: src/helpers/sendEmail.handle
+    timeout: 300 # Default is 6  
+  
+stepFunctions:
+  stateMachines:
+    reservationsHotels:
+      name: ReservationsHotels
+      definition:
+        Comment: ''
+        StartAt: ValidateDate
+        States:
+          ValidateDate:
+            Type: Task
+            Next: SendEmail
+            Resource: arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-validate-date
+          SendEmail:
+            Type: Task
+            Resource: arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:${self:service}-${self:provider.stage}-send-email
+            End: true     
